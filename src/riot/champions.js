@@ -18,7 +18,7 @@ const find = async(db, apiKey, search) => {
         shouldSort: true,
         threshold: 0.2,
         keys: [
-            "name"
+            'name'
         ]
     });
     const result = finder.search(search);
