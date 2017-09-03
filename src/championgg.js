@@ -26,7 +26,7 @@ const allRoles = async(key, id) => {
 
 const mostPlayed = async(key, id) => {
     const roles = await allRoles(key, id);
-    return roles.sort((a, b) => a.playRate - b.playRate)[0];
+    return roles.sort((a, b) => b.playRate - a.playRate)[0];
 };
 
 const byRole = async(key, id, role) => {
