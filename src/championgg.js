@@ -51,7 +51,7 @@ const getLabelForRole = role => {
         case 'DUO_SUPPORT':
             return 'Support';
     }
-}
+};
 
 module.exports = {
     allRoles,
