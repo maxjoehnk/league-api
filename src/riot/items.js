@@ -1,7 +1,7 @@
 const fetch = require('node-fetch');
 const d = require('debug')('league-api:riot:items');
 
-const items = async(db, apiKey) => {
+const all = async(db, apiKey) => {
     if (await isCacheValid(db)) {
         return await itemsFromCache(db);
     }else {
@@ -72,5 +72,5 @@ const cacheItems = async(db, items) => {
 };
 
 module.exports = {
-    items
+    all
 };

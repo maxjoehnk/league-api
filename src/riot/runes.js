@@ -1,7 +1,7 @@
 const fetch = require('node-fetch');
 const d = require('debug')('league-api:riot:runes');
 
-const runes = async(db, apiKey) => {
+const all = async(db, apiKey) => {
     if (await isCacheValid(db)) {
         return await runesFromCache(db);
     }else {
@@ -68,5 +68,5 @@ const cacheRunes = async(db, runes) => {
 };
 
 module.exports = {
-    runes
+    all
 };

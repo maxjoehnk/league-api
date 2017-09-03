@@ -1,7 +1,8 @@
 const fetch = require('node-fetch');
+const Fuse = require('fuse.js');
 const d = require('debug')('league-api:riot:champions');
 
-const champions = async(db, apiKey) => {
+const all = async(db, apiKey) => {
     if (await isCacheValid(db)) {
         return await championsFromCache(db);
     }else {
@@ -9,6 +10,22 @@ const champions = async(db, apiKey) => {
         await cacheChampions(db, champions);
         return champions;
     }
+};
+
+const find = async(db, apiKey, search) => {
+    const champions = await all(db, apiKey);
+    const finder = new Fuse(champions, {
+        shouldSort: true,
+        threshold: 0.2,
+        keys: [
+            "name"
+        ]
+    });
+    const result = finder.search(search);
+    if (result.length > 0) {
+        return result[0];
+    }
+    throw new Error('Unknown Champion');
 };
 
 const apiToImageUrl = version => image =>
@@ -116,5 +133,6 @@ const cacheChampions = async(db, champions) => {
 };
 
 module.exports = {
-    champions
+    all,
+    find
 };
