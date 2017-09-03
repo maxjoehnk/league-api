@@ -12,11 +12,11 @@ const all = async(db, apiKey) => {
     }
 };
 
-const find = async(db, apiKey, search) => {
+const find = async(db, apiKey, search, threshold = 0.2) => {
     const champions = await all(db, apiKey);
     const finder = new Fuse(champions, {
         shouldSort: true,
-        threshold: 0.2,
+        threshold,
         keys: [
             'name'
         ]
