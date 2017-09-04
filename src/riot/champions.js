@@ -176,6 +176,7 @@ const cacheChampions = async(db, champions) => {
     await db.transaction(async knex => {
         d('Dropping Champions Cache');
         await knex.table('champions').del();
+        await knex.table('championSpells').del();
         d('Caching Campions');
         const promises = champions.map(async model => {
             await knex.insert(modelToCacheChampion(model)).into('champions');
