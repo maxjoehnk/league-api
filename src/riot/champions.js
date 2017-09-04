@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 const Fuse = require('fuse.js');
 const d = require('debug')('league-api:riot:champions');
 
-const all = async (db, apiKey) => {
+const all = async(db, apiKey) => {
     if (await isCacheValid(db)) {
         return await championsFromCache(db);
     }else {
@@ -12,7 +12,7 @@ const all = async (db, apiKey) => {
     }
 };
 
-const find = async (db, apiKey, search, threshold = 0.2) => {
+const find = async(db, apiKey, search, threshold = 0.2) => {
     const champions = await all(db, apiKey);
     const finder = new Fuse(champions, {
         shouldSort: true,
@@ -85,31 +85,31 @@ const cacheChampionToModel = spells => champion =>
     });
 
 const modelToCacheChampion = ({
-                                  id,
-                                  key,
-                                  name,
-                                  title,
-                                  lore,
-                                  loreExcerpt,
-                                  imageUrl,
-                                  infoDifficulty,
-                                  infoAttack,
-                                  infoDefense,
-                                  infoMagic,
-                                  healthBase,
-                                  healthPerLevel,
-                                  healthRegenBase,
-                                  healthRegenPerLevel,
-                                  adBase,
-                                  adPerLevel,
-                                  asBase,
-                                  asPerLevel,
-                                  armorBase,
-                                  armorPerLevel,
-                                  mrBase,
-                                  mrPerLevel,
-                                  movespeed
-                              }) => ({
+    id,
+    key,
+    name,
+    title,
+    lore,
+    loreExcerpt,
+    imageUrl,
+    infoDifficulty,
+    infoAttack,
+    infoDefense,
+    infoMagic,
+    healthBase,
+    healthPerLevel,
+    healthRegenBase,
+    healthRegenPerLevel,
+    adBase,
+    adPerLevel,
+    asBase,
+    asPerLevel,
+    armorBase,
+    armorPerLevel,
+    mrBase,
+    mrPerLevel,
+    movespeed
+}) => ({
     riotId: id,
     riotKey: key,
     name,
@@ -172,7 +172,7 @@ const isCacheValid = async db => {
     return res.length > 0 && res[0].expires > Date.now();
 };
 
-const cacheChampions = async (db, champions) => {
+const cacheChampions = async(db, champions) => {
     await db.transaction(async knex => {
         d('Dropping Champions Cache');
         await knex.table('champions').del();
