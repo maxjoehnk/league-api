@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 const Fuse = require('fuse.js');
 const d = require('debug')('league-api:riot:champions');
 
-const all = async(db, apiKey) => {
+const all = async (db, apiKey) => {
     if (await isCacheValid(db)) {
         return await championsFromCache(db);
     }else {
@@ -12,7 +12,7 @@ const all = async(db, apiKey) => {
     }
 };
 
-const find = async(db, apiKey, search, threshold = 0.2) => {
+const find = async (db, apiKey, search, threshold = 0.2) => {
     const champions = await all(db, apiKey);
     const finder = new Fuse(champions, {
         shouldSort: true,
@@ -22,6 +22,7 @@ const find = async(db, apiKey, search, threshold = 0.2) => {
         ]
     });
     const result = finder.search(search);
+    d(`Query ${search} returned ${result.length} results`);
     if (result.length > 0) {
         return result[0];
     }
@@ -43,35 +44,96 @@ const apiChampionToModel = body => champion => {
     const spellBuilder = apiSpellToModel(imageBuilder);
     return {
         id: champion.id,
+        key: champion.key,
         name: champion.name,
         title: champion.title,
         lore: champion.lore,
+        loreExcerpt: champion.blurb,
         imageUrl: imageBuilder(champion.image),
-        skills: champion.spells.map(spellBuilder)
+        skills: [spellBuilder(champion.passive), ...champion.spells.map(spellBuilder)],
+        infoDifficulty: champion.info.difficulty,
+        infoAttack: champion.info.attack,
+        infoDefense: champion.info.defense,
+        infoMagic: champion.info.magic,
+        healthBase: champion.stats.hp,
+        healthPerLevel: champion.stats.hpperlevel,
+        healthRegenBase: champion.stats.hpregen,
+        healthRegenPerLevel: champion.stats.hpregenperlevel,
+        adBase: champion.stats.attackdamage,
+        adPerLevel: champion.stats.attackdamageperlevel,
+        asBase: 0,
+        asPerLevel: champion.stats.attackspeedperlevel,
+        armorBase: champion.stats.armor,
+        armorPerLevel: champion.stats.armorperlevel,
+        mrBase: champion.stats.spellblock,
+        mrPerLevel: champion.stats.spellblockperlevel,
+        movespeed: champion.stats.movespeed
     };
 };
 
-const cacheChampionToModel = spells => champion => ({
-    id: champion.riotId,
-    name: champion.name,
-    title: champion.title,
-    lore: champion.lore,
-    imageUrl: champion.imageUrl,
-    skills: spells
-        .filter(({ championId }) => championId === champion.riotId)
-        .map(skill => ({
-            name: skill.name,
-            description: skill.description,
-            imageUrl: skill.imageUrl
-        }))
-});
+const cacheChampionToModel = spells => champion =>
+    Object.assign({}, champion, {
+        id: champion.riotId,
+        key: champion.riotKey,
+        skills: spells
+            .filter(({ championId }) => championId === champion.riotId)
+            .map(skill => ({
+                name: skill.name,
+                description: skill.description,
+                imageUrl: skill.imageUrl
+            }))
+    });
 
-const modelToCacheChampion = model => ({
-    riotId: model.id,
-    name: model.name,
-    title: model.title,
-    lore: model.lore,
-    imageUrl: model.imageUrl
+const modelToCacheChampion = ({
+                                  id,
+                                  key,
+                                  name,
+                                  title,
+                                  lore,
+                                  loreExcerpt,
+                                  imageUrl,
+                                  infoDifficulty,
+                                  infoAttack,
+                                  infoDefense,
+                                  infoMagic,
+                                  healthBase,
+                                  healthPerLevel,
+                                  healthRegenBase,
+                                  healthRegenPerLevel,
+                                  adBase,
+                                  adPerLevel,
+                                  asBase,
+                                  asPerLevel,
+                                  armorBase,
+                                  armorPerLevel,
+                                  mrBase,
+                                  mrPerLevel,
+                                  movespeed
+                              }) => ({
+    riotId: id,
+    riotKey: key,
+    name,
+    title,
+    lore,
+    loreExcerpt,
+    imageUrl,
+    infoDifficulty,
+    infoAttack,
+    infoDefense,
+    infoMagic,
+    healthBase,
+    healthPerLevel,
+    healthRegenBase,
+    healthRegenPerLevel,
+    adBase,
+    adPerLevel,
+    asBase,
+    asPerLevel,
+    armorBase,
+    armorPerLevel,
+    mrBase,
+    mrPerLevel,
+    movespeed
 });
 
 const modelToCacheSkills = model => model.skills.map(skill => ({
@@ -104,13 +166,13 @@ const championsFromCache = async db => {
 
 const isCacheValid = async db => {
     d('Checking Cache');
-    const res = await db.select('expires')
+    const res = await db.select()
         .where('cacheIdentifier', 'riotChampions')
         .from('cacheControl');
     return res.length > 0 && res[0].expires > Date.now();
 };
 
-const cacheChampions = async(db, champions) => {
+const cacheChampions = async (db, champions) => {
     await db.transaction(async knex => {
         d('Dropping Champions Cache');
         await knex.table('champions').del();
