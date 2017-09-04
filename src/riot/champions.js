@@ -32,11 +32,70 @@ const find = async(db, apiKey, search, threshold = 0.2) => {
 const apiToImageUrl = version => image =>
     `http://ddragon.leagueoflegends.com/cdn/${version}/img/${image.group}/${image.full}`;
 
+const mapSkillVariableToString = variable => {
+    let label;
+    switch (variable.link) {
+        case 'spelldamage':
+            label = 'Ability Power';
+            break;
+        case 'attackdamage':
+            label = 'Attack Damage';
+            break;
+        case 'bonusattackdamage':
+            label = 'Bonus Attack Damage';
+            break;
+        case 'bonushealth':
+            label = 'Bonus Health';
+            break;
+        case 'armor':
+            label = 'Armor';
+            break;
+        case 'bonusarmor':
+            label = 'Bonus Armor';
+            break;
+        case 'bonusspellblock':
+            label = 'Bonus Magic Resist';
+            break;
+        default:
+            label = variable.link;
+            break;
+    }
+    return `${Math.round(variable.coeff[0] * 100)}% ${label}`;
+};
+
+const mapSkillToTooltip = model => {
+    if (!model.sanitizedTooltip) {
+        return undefined;
+    }
+    const base = model.sanitizedTooltip;
+    const variables = {};
+    model.effectBurn && model.effectBurn.forEach((v, i) => {
+        variables[`e${i}`] = v;
+    });
+    model.vars && model.vars.forEach(variable => {
+        variables[variable.key] = mapSkillVariableToString(variable);
+        d(`Generated Value for ${variable.key}: ${variables[variable.key]}`);
+    });
+    return base.replace(/{{\s*([aef][0-9]+)\s*}}/g, (_, key) => {
+        const replaceWith = variables[key];
+        if (!replaceWith) {
+            d(`Trying to replace unknown variable ${key}`);
+            return `*${key}*`; // @TODO: find a way to populate unknown variables
+        }else {
+            d(`Replacing ${key} with ${replaceWith}`);
+        }
+        return `*${replaceWith}*`;
+    });
+};
 
 const apiSpellToModel = imageBuilder => spell => ({
     name: spell.name,
     description: spell.sanitizedDescription,
-    imageUrl: imageBuilder(spell.image)
+    imageUrl: imageBuilder(spell.image),
+    tooltip: mapSkillToTooltip(spell),
+    cooldown: spell.cooldownBurn,
+    cost: spell.costBurn,
+    range: spell.rangeBurn
 });
 
 const apiChampionToModel = body => champion => {
@@ -77,11 +136,6 @@ const cacheChampionToModel = spells => champion =>
         key: champion.riotKey,
         skills: spells
             .filter(({ championId }) => championId === champion.riotId)
-            .map(skill => ({
-                name: skill.name,
-                description: skill.description,
-                imageUrl: skill.imageUrl
-            }))
     });
 
 const modelToCacheChampion = ({
@@ -140,7 +194,12 @@ const modelToCacheSkills = model => model.skills.map(skill => ({
     championId: model.id,
     name: skill.name,
     description: skill.description,
-    imageUrl: skill.imageUrl
+    imageUrl: skill.imageUrl,
+    key: skill.key,
+    tooltip: skill.tooltip,
+    cooldown: skill.cooldown,
+    cost: skill.cost,
+    range: skill.range
 }));
 
 const championsFromApi = async apiKey => {
