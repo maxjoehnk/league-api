@@ -1,15 +1,6 @@
 const fetch = require('node-fetch');
 const d = require('debug')('league-api:riot:runes');
-
-const all = async(db, apiKey) => {
-    if (await isCacheValid(db)) {
-        return await runesFromCache(db);
-    }else {
-        const runes = await runesFromApi(apiKey);
-        await cacheRunes(db, runes);
-        return runes;
-    }
-};
+const cache = require('./cache')('riotRunes');
 
 const runesFromApi = async apiKey => {
     d('Fetching all Runes from Riot Api');
@@ -39,14 +30,6 @@ const runesFromCache = async db => {
     }));
 };
 
-const isCacheValid = async db => {
-    d('Checking Cache');
-    const res = await db.select('expires')
-        .where('cacheIdentifier', 'riotRunes')
-        .from('cacheControl');
-    return res.length > 0 && res[0].expires > Date.now();
-};
-
 const cacheRunes = async(db, runes) => {
     d('Dropping Runes Cache');
     await db.table('runes').del();
@@ -57,15 +40,10 @@ const cacheRunes = async(db, runes) => {
         description
     }))).into('runes');
     d('Updating Cache Control');
-    await db.from('cacheControl')
-        .where('cacheIdentifier', 'riotRunes')
-        .del();
-    await db.insert({
-        cacheIdentifier: 'riotRunes',
-        lastModified: new Date(),
-        expires: new Date(Date.now() + (1000 * 60 * 60 * 24 * 2)) // Expire in two days
-    }).into('cacheControl');
+    await cache.update(db);
 };
+
+const all = cache.fetch(runesFromCache, runesFromApi, cacheRunes);
 
 module.exports = {
     all

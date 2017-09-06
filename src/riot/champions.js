@@ -1,33 +1,7 @@
 const fetch = require('node-fetch');
 const Fuse = require('fuse.js');
 const d = require('debug')('league-api:riot:champions');
-
-const all = async(db, apiKey) => {
-    if (await isCacheValid(db)) {
-        return await championsFromCache(db);
-    }else {
-        const champions = await championsFromApi(apiKey);
-        await cacheChampions(db, champions);
-        return champions;
-    }
-};
-
-const find = async(db, apiKey, search, threshold = 0.2) => {
-    const champions = await all(db, apiKey);
-    const finder = new Fuse(champions, {
-        shouldSort: true,
-        threshold,
-        keys: [
-            'name'
-        ]
-    });
-    const result = finder.search(search);
-    d(`Query ${search} returned ${result.length} results`);
-    if (result.length > 0) {
-        return result[0];
-    }
-    throw new Error('Unknown Champion');
-};
+const cache = require('./cache')('riotChampions');
 
 const apiToImageUrl = version => image =>
     `http://ddragon.leagueoflegends.com/cdn/${version}/img/${image.group}/${image.full}`;
@@ -223,14 +197,6 @@ const championsFromCache = async db => {
     return champions.map(cacheChampionToModel(skills));
 };
 
-const isCacheValid = async db => {
-    d('Checking Cache');
-    const res = await db.select()
-        .where('cacheIdentifier', 'riotChampions')
-        .from('cacheControl');
-    return res.length > 0 && res[0].expires > Date.now();
-};
-
 const cacheChampions = async(db, champions) => {
     await db.transaction(async knex => {
         d('Dropping Champions Cache');
@@ -243,15 +209,27 @@ const cacheChampions = async(db, champions) => {
         });
         await Promise.all(promises);
         d('Updating Cache Control');
-        await knex.table('cacheControl')
-            .where('cacheIdentifier', 'riotChampions')
-            .del();
-        await knex.insert({
-            cacheIdentifier: 'riotChampions',
-            lastModified: new Date(),
-            expires: new Date(Date.now() + (1000 * 60 * 60 * 24 * 2)) // Expire in two days
-        }).into('cacheControl');
+        await cache.update(knex);
     });
+};
+
+const all = cache.fetch(championsFromCache, championsFromApi, cacheChampions);
+
+const find = async(db, apiKey, search, threshold = 0.2) => {
+    const champions = await all(db, apiKey);
+    const finder = new Fuse(champions, {
+        shouldSort: true,
+        threshold,
+        keys: [
+            'name'
+        ]
+    });
+    const result = finder.search(search);
+    d(`Query ${search} returned ${result.length} results`);
+    if (result.length > 0) {
+        return result[0];
+    }
+    throw new Error('Unknown Champion');
 };
 
 module.exports = {
