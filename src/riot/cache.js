@@ -26,7 +26,7 @@ const fetch = identifier => (fetchCache, fetchApi, storeCache) => {
             return await fetchCache(db);
         }else {
             const result = await fetchApi(apiKey);
-            await storeCache(result);
+            await storeCache(db, result);
             return result;
         }
     };
