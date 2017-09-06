@@ -64,7 +64,7 @@ const mapSkillVariableToString = variable => {
 };
 
 const mapSkillToTooltip = model => {
-    if (!model.sanitizedTooltip) {
+    if (!model.sanitizedTooltip) {
         return undefined;
     }
     const base = model.sanitizedTooltip;
