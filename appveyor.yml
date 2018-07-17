@@ -1,0 +1,10 @@
+version: 1.0.{build}
+init:
+- ps: Install-Product node ''
+install:
+- cmd: npm install
+build: off
+test_script:
+- cmd: >-
+    npm run lint
+    npm run test
