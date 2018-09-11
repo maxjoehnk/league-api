@@ -23,7 +23,7 @@
     },
     "homepage": "https://github.com/maxjoehnk/league-api#readme",
     "dependencies": {
-        "debug": "^3.1.0",
+        "debug": "3.1.0",
         "fuse.js": "^3.2.1",
         "knex": "^0.15.1",
         "node-fetch": "^2.1.2",
