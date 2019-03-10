@@ -24,7 +24,7 @@
     "homepage": "https://github.com/maxjoehnk/league-api#readme",
     "dependencies": {
         "debug": "^3.1.0",
-        "fuse.js": "^3.2.1",
+        "fuse.js": "^3.4.4",
         "knex": "^0.15.1",
         "node-fetch": "^2.1.2",
         "sqlite3": "^4.0.2"
